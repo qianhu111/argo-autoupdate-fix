@@ -41,7 +41,7 @@ Cloudflare 官方 openrc 服务模板用的是方案 B：`supervisor="supervise-
     wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh | sh
 
     # 方案 B：保留自动更新 + supervisor 保活
-    wget -qO- https://raw.githubusercontent/qianhu111/argo-autoupdate-fix/main/argo-supervise.sh | sh
+    wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-supervise.sh | sh
 
     # 回滚：列出备份，交互选编号
     wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-restore.sh | sh
