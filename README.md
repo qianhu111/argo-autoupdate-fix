@@ -44,9 +44,9 @@ Cloudflare 官方 openrc 服务模板用的是方案 B：`supervisor="supervise-
     wget -qO- https://raw.githubusercontent/qianhu111/argo-autoupdate-fix/main/argo-supervise.sh | sh
 
     # 回滚：列出备份，交互选编号
-    sh argo-restore.sh
-    # 或直接还原第 2 个备份
-    sh argo-restore.sh 2
+    wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-restore.sh | sh
+    # 或直接还原第 2 个备份（管道模式传参要加 sh -s）
+    wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-restore.sh | sh -s 2
 
 curl 版（同样零残留）：
 
@@ -57,6 +57,8 @@ curl 版（同样零残留）：
     bash <(wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh)
 
 > `wget -qO-` 的 `-O-` 表示输出到 stdout 不落盘，管道直接喂给 sh，运行完无文件残留。只有 `wget -O 文件名` 才会落地。
+>
+> 管道模式下脚本从 stdin 执行，**带编号参数要写成 `| sh -s 2`**（`-s` 让 sh 从 stdin 读脚本，后面的数字才是 `$1`）；直接 `| sh 2` 是错的。交互选编号的写法不受影响，脚本通过 `/dev/tty` 读键盘。
 
 ## 脚本行为
 
