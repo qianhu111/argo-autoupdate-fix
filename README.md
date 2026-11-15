@@ -16,10 +16,11 @@
 
 日志特征（`/etc/sing-box/logs/argo.log`）：
 
+```
 cloudflared has been updated version=2026.11.0
 Initiating shutdown error="cloudflared has been updated to version 2026.11.0"
 Tunnel server stopped
-
+```
 
 > 注：内存紧张不是本次停机的主因。排查时 `oom_kill` 为 0，没有进程被 OOM 杀掉。
 
@@ -43,12 +44,12 @@ sh argo-patch.sh
 - 清理残留进程 + openrc 僵死状态（zap + 删除 pidfile）
 - 重启 argo 并验收：检查服务状态、进程参数、日志尾部
 
-注意事项
+## 注意事项
 
 - 重启期间隧道会短暂断连几秒，属正常现象。
 - 不要重新运行 bash sing-box.sh 或 sb -d 等改参数操作：这些会重写 /etc/init.d/argo，把补丁冲掉。若重写过，重新执行一次本脚本即可补回。
 - 验证是否彻底修复：过几小时查看日志，不再出现 has been updated 即正常。
 
-适用环境
+## 适用环境
 
 Alpine Linux + openrc + fscarmen sing-box 一键脚本部署的固定（非临时）Argo 隧道。
