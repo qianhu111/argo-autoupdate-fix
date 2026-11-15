@@ -60,21 +60,21 @@ curl 版（同样零残留）：
 
 ## 脚本行为
 
-所有脚本都遵循：检查环境（root / openrc / 服务文件），不符合直接退出不乱改；修改前按时间戳备份；幂等设计，重复运行结果一致；清理残留进程与 openrc 僵死状态（zap + 删 pidfile）；重启并验收（服务状态、关键配置行、进程、日志）。
+所有脚本都遵循：检查环境（root / openrc / 服务文件），不符合直接退出不乱改；修改前按时间戳备份；幂等设计，重复运行结果一致；清理残留进程与 openrc 僵死状态（zap + 删 pidfile）。
+
+**验收机制**：启动后轮询日志最多 20 秒，确认本次启动真的出现 `Registered tunnel connection` 才报成功——不只是"进程在、状态 started"。这样 token 失效、网络不通导致进程活着但隧道断掉的情况也能被发现。判断只看启动后新增的日志行（记录启动前行数），不受 UTC 时区影响，也不会被旧记录误判。
 
 **argo-restore.sh** 额外会扫描所有 `argo.bak*` 备份并标注状态（A 态 / B 态 / 混合态 / 原始态），还原前自动另存当前状态为 `argo.bak.pre-restore.XXXX`，选错也能反悔。
 
 ## 互转与回滚
 
-两个脚本改的是同一个文件 `/etc/init.d/argo`，但能力不对称：
+两个脚本改的是同一个文件 `/etc/init.d/argo`，且都已归一到干净目标态、双向幂等——**A 和 B 可以直接互相切换，不必绕 restore**：
 
-- **B 能覆盖 A**：从 A 切到 B，直接跑 `argo-supervise.sh`，它会删掉 `--no-autoupdate` 并重建 supervisor 配置。
-- **A 盖不干净 B**：从 B 切回 A，别直接跑 A（会残留 supervisor 行），用 `argo-restore.sh` 选 B 运行前的备份，或手动：
+- A → B：跑 `argo-supervise.sh`（清掉 `--no-autoupdate`，写入 supervisor 三件套）
+- B → A：跑 `argo-patch.sh`（清掉 supervisor 行，加回 `--no-autoupdate`，恢复 `command_background="yes"`）
+- 想回到某个历史状态：跑 `argo-restore.sh` 选对应备份
 
-      cp /etc/init.d/argo.bak.b.XXXX /etc/init.d/argo
-      rc-service argo restart
-
-备份后缀区分：`argo.bak.XXXX` 是 A 脚本留的，`argo.bak.b.XXXX` 是 B 脚本留的。想回到哪个状态就选对应那版。
+备份后缀区分：`argo.bak.XXXX` 是 A 脚本留的，`argo.bak.b.XXXX` 是 B 脚本留的，`argo.bak.pre-restore.XXXX` 是回滚前自动存的当前状态。顶层脚本每次跑都会各自备份，随便折腾都能退回来。
 
 ## 注意事项
 

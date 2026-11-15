@@ -70,29 +70,43 @@ TARGET=$(printf '%s\n' "$BACKUPS" | sed -n "${choice}p")
 echo ""
 echo "[i] 选定: $(basename "$TARGET")  ->  $(label "$TARGET")"
 
-# 还原前先备份当前状态，可逆
+echo ""
+echo "==> 还原中"
 CUR_BAK="${SVC}.bak.pre-restore.$(date +%Y%m%d%H%M%S)"
 cp "$SVC" "$CUR_BAK"
 echo "[OK] 当前状态已另存: $(basename "$CUR_BAK")"
-
-echo ""
-echo "==> 还原中"
 cp "$TARGET" "$SVC"
 chmod +x "$SVC"
 pkill -9 -f '/etc/sing-box/cloudflared' 2>/dev/null || true
 sleep 1
 rc-service argo zap 2>/dev/null || true
 rm -f /var/run/argo.pid
+# 启动前记录日志行数，验收只看本次新增，避开 UTC 日期比对坑
+if [ -s "$LOG" ]; then LOG_BEFORE=$(wc -l < "$LOG"); else LOG_BEFORE=0; fi
 rc-service argo start
-sleep 3
 
 echo ""
-echo "==> 验收"
+echo "==> 验收（轮询日志最多 20 秒，确认隧道真注册）"
 rc-service argo status
+REGISTERED=no
+i=0
+while [ "$i" -lt 10 ]; do
+    if [ -s "$LOG" ] && tail -n +$((LOG_BEFORE + 1)) "$LOG" 2>/dev/null | grep -q 'Registered tunnel connection'; then
+        REGISTERED=yes
+        break
+    fi
+    i=$((i + 1))
+    sleep 2
+done
 echo "--- 服务文件关键行 ---"
 grep -E '^(command_args|supervisor|respawn|command_background)' "$SVC" || true
 echo "--- 进程 ---"
 ps aux | grep '[c]loudflared' || echo "(无进程)"
+if [ "$REGISTERED" = "yes" ]; then
+    echo "[OK] 本次启动已见 Registered tunnel connection，隧道注册成功"
+else
+    echo "[!] 进程在但新日志未见隧道注册——检查 token / 网络 / 稍后手动确认"
+fi
 echo "--- 日志尾部 ---"
 [ -s "$LOG" ] && tail -6 "$LOG" || echo "(日志为空)"
 echo ""
