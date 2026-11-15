@@ -33,7 +33,17 @@ Tunnel server stopped
 需要 root 权限：
 
 ```bash
+wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh | sh
+```
+```bash
+curl -fsSL -O https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh
 sh argo-patch.sh
+```
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh)
+```
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh)
 ```
 
 脚本做的事：
