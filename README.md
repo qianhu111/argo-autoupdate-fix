@@ -32,18 +32,10 @@ Tunnel server stopped
 
 需要 root 权限：
 
+### argo-patch.sh
+
 ```bash
 wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh | sh
-```
-```bash
-curl -fsSL -O https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh
-sh argo-patch.sh
-```
-```bash
-bash <(wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh)
-```
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-patch.sh)
 ```
 
 脚本做的事：
@@ -53,6 +45,30 @@ bash <(curl -fsSL https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fi
 - 修改前按时间戳备份 /etc/init.d/argo
 - 清理残留进程 + openrc 僵死状态（zap + 删除 pidfile）
 - 重启 argo 并验收：检查服务状态、进程参数、日志尾部
+
+### argo-supervise.sh
+
+```bash
+wget -qO- https://raw.githubusercontent.com/qianhu111/argo-autoupdate-fix/main/argo-supervise.sh | sh
+```
+
+它做的事:
+
+- 查环境:root / openrc / supervise-daemon 存在,缺一样就退,不乱改
+- 备份:按时间戳存 argo.bak.b.XXXX(注意后缀 .b,跟 argo-patch.sh 脚本的 .bak.XXXX 区分开)
+- 改写:去掉 --no-autoupdate 恢复自动更新;把 command_background="yes" 换成官方三件套 supervisor + respawn_delay=5 + respawn_max=0
+- 幂等:重复跑结果一样,不会叠加 supervisor 行——我刚拿模拟服务文件实测过改写逻辑,输出正确
+- 清僵死 + 重启 + 验收:跟 argo-patch.sh 脚本一套流程
+
+### 两个脚本的区别:
+| |argo-patch.sh (A)|argo-supervise.sh (B)|
+|---|---|---|
+|自动更新|禁用|保留|
+|靠什么续命|不退出,一劳永逸|退出后 supervisor 5 秒拉起|
+|附带好处|版本冻结|崩溃也能自动复活|
+
+### 互转:
+这俩互为逆操作。A→B 直接跑 B;B→A 直接跑 A(会加回 --no-autoupdate,但 A 脚本不会删 supervisor——所以从 B 回 A 的话,跑完 A 记得手动把那三行 supervisor 删掉,或者用 B 脚本的备份回滚)。真要从 B 退回 A,最干净是用 B 脚本留的备份 cp argo.bak.b.XXXX /etc/init.d/argo 然后 restart。
 
 ## 注意事项
 
